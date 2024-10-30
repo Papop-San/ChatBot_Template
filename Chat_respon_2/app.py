@@ -42,5 +42,8 @@ def chat():
     bot_response = respond(user_message)
     return jsonify({'user_message': user_message, 'bot_response': bot_response})  # Added jsonify for JSON response
 
+# Adding laetr of Sentiment analysis on Tomorrow
+
+
 if __name__ == '__main__':
     app.run(debug=True)
