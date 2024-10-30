@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot with Sentiment Analysis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .chat-container {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            width: 1080px;
+            height: 500px;
+            background-color: #fff;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column; /* Arrange messages vertically */
+        }
+        #response {
+            margin-bottom: 20px;
+            flex: 1; /* Allow response to take up available space */
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* Enable scrolling for message area */
+        }
+        .message {
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 80%;
+            word-wrap: break-word;
+            position: relative;
+        }
+        .user-message {
+            background-color: #28a745; 
+            border: 1px solid #c3e6cb;
+            text-align: right;
+            margin-left: auto;
+            color: white;
+            margin-top: 1.6rem;
+        }
+        .bot-message {
+            background-color: #b9424c;
+            border: 1px solid #f5c6cb;
+            color: white;
+            text-align: left;
+            margin-right: auto;
+        }
+        .input-group {
+            display: flex;
+            margin-top: 10px;
+            width: 1080px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px 0 0 5px;
+            height: 40px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus {
+            outline: none;
+        }
+        button {
+            padding: 0 15px;
+            border: none;
+            border-radius: 0 5px 5px 0;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            height: 40px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .card {
+            margin: 10px;
+            width: calc(50% - 20px); /* Two columns with some spacing */
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            font-size: 16px;
+            background-color: #fff;
+            box-sizing: border-box; /* Include padding and border in the element's total width */
+        }
+        .positive-text {
+            color: white;
+            background-color: #28a745;
+            padding: 5px;
+            border-radius: 10px;
+        }
+        .negative-text {
+            color: rgb(39, 37, 37);
+            background-color: #dc3545;
+            padding: 5px; 
+            border-radius: 10px;
+        }
+        .neutral-text {
+            color: white;
+            background-color: #6c757d;
+            padding: 5px;
+            border-radius: 10px;
+        }
+        #sentiment {
+            display: flex;
+            flex-wrap: wrap; /* Allow items to wrap into new rows */
+            justify-content: space-between; /* Distribute space evenly */
+            width: 1080px; /* Same width as chat container */
+        }
+        .sentiment-tooltip {
+            display: none;
+            position: absolute;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            white-space: nowrap;
+            background-color: rgba(0, 0, 0, 0.7);
+            top: -30px;
+            right: 0;
+            z-index: 10;
+        }
+        .user-message:hover .sentiment-tooltip {
+            display: block;
+        }
+        .analysis-log-p {
+            text-align: center;
+        }
+    </style>
+    <script>
+        async function sendMessage() {
+            const userMessage = document.getElementById('userMessage').value;
+            const responseDiv = document.getElementById('response');
+            const sentimentDiv = document.getElementById('sentiment');
+
+            const sentimentRes = await fetch('/api/sentiment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: userMessage })
+            });
+
+            const sentimentData = await sentimentRes.json();
+            
+            let category = 'Neutral';
+            let textClass = 'neutral-text';
+            if (sentimentData.compound >= 0.05) {
+                category = 'Positive';
+                textClass = 'positive-text';
+            } else if (sentimentData.compound <= -0.05) {
+                category = 'Negative';
+                textClass = 'negative-text';
+            }
+
+            const userMessageDiv = document.createElement('div');
+            userMessageDiv.className = 'message user-message';
+            userMessageDiv.innerHTML = `<strong>USER :</strong> ${userMessage}`;
+
+            const tooltipSpan = document.createElement('span');
+            tooltipSpan.className = `sentiment-tooltip ${textClass}`;
+            tooltipSpan.innerText = category;
+
+            userMessageDiv.appendChild(tooltipSpan);
+            responseDiv.appendChild(userMessageDiv);
+
+            const res = await fetch('/api/message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: userMessage })
+            });
+            
+            const data = await res.json();
+            const botMessageDiv = document.createElement('div');
+            botMessageDiv.className = 'message bot-message';
+            botMessageDiv.innerHTML = `<strong>BOT :</strong> ${data.response}`;
+            responseDiv.appendChild(botMessageDiv);
+
+            sentimentDiv.innerHTML += `\
+                <div class="card">\
+                    <p class="analysis-log-p"><strong>Sentence:</strong> ${userMessage} </p>\
+                    <p class="sentiment-category analysis-log-p">\
+                        <strong>Category:</strong> <span class="${textClass}">${category}</span>\
+                    </p>\
+                </div>\
+            `;
+
+            document.getElementById('userMessage').value = '';
+            responseDiv.scrollTop = responseDiv.scrollHeight; 
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Prevent the default action (like a new line)
+                sendMessage();
+            }
+        });
+    </script>
+</head>
+<body>
+    <h1>Chatbot with Sentiment Analysis</h1>
+    <div class="chat-container">
+        <div id="response"></div>
+        <div class="input-group">
+            <input type="text" id="userMessage" placeholder="Type your message here..." />
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+    <div id="sentiment"></div>
+</body>
+</html>
