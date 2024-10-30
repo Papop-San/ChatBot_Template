@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot with Sentiment Analysis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .chat-container {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            width: 1080px;
+            height: 500px;
+            background-color: #fff;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column; /* Arrange messages vertically */
+        }
+        #response {
+            margin-bottom: 20px;
+            flex: 1; /* Allow response to take up available space */
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* Enable scrolling for message area */
+        }
+        .message {
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 80%;
+            word-wrap: break-word;
+            position: relative;
+        }
+        .user-message {
+            background-color: #28a745; 
+            border: 1px solid #c3e6cb;
+            text-align: right;
+            margin-left: auto;
+            color: white;
+            margin-top: 1.6rem;
+        }
+        .bot-message {
+            background-color: #b9424c;
+            border: 1px solid #f5c6cb;
+            color: white;
+            text-align: left;
+            margin-right: auto;
+        }
+        .input-group {
+            display: flex;
+            margin-top: 10px;
+            width: 1080px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px 0 0 5px;
+            height: 40px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus {
+            outline: none;
+        }
+        button {
+            padding: 0 15px;
+            border: none;
+            border-radius: 0 5px 5px 0;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            height: 40px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+    <script>
+        async function sendMessage() {
+            const userMessage = document.getElementById('userMessage').value;
+            const responseDiv = document.getElementById('response');
+
+            // Send the message to the Flask backend
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `message=${encodeURIComponent(userMessage)}`
+            });
+
+            // Check if the response is okay
+            if (!response.ok) {
+                console.error('Error with response:', response.statusText);
+                return;
+            }
+
+            const data = await response.json(); // Parse JSON response
+
+            // Append user message
+            const userMessageDiv = document.createElement('div');
+            userMessageDiv.className = 'message user-message';
+            userMessageDiv.innerHTML = `<strong>USER :</strong> ${data.user_message}`;
+            responseDiv.appendChild(userMessageDiv);
+
+            // Append bot response
+            const botMessageDiv = document.createElement('div');
+            botMessageDiv.className = 'message bot-message';
+            botMessageDiv.innerHTML = `<strong>BOT :</strong> ${data.bot_response}`;
+            responseDiv.appendChild(botMessageDiv);
+
+            document.getElementById('userMessage').value = '';
+            responseDiv.scrollTop = responseDiv.scrollHeight; 
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+    </script>
+</head>
+<body>
+    <h1>Chatbot with Sentiment Analysis</h1>
+    <div class="chat-container">
+        <div id="response"></div>
+        <div class="input-group">
+            <input type="text" id="userMessage" placeholder="Type your message here..." />
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+</body>
+</html>
